@@ -3,32 +3,29 @@ import requests
 
 app = Flask(__name__)
 
+API_URL = "https://api.exchangerate-api.com/v4/latest/"
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     result = None
+    error = None
 
     if request.method == "POST":
-        amount = float(request.form["amount"])
-        currency = request.form["currency"]
+        try:
+            amount = float(request.form.get("amount"))
+            from_currency = request.form.get("from_currency")
+            to_currency = request.form.get("to_currency")
 
-        if currency in ["USD", "EUR", "RUB"]:
-            url = f"https://api.exchangerate.host/latest?base={currency}&symbols=UZS"
-            data = requests.get(url).json()
-            result = amount * data["rates"]["UZS"]
+            response = requests.get(API_URL + from_currency)
+            data = response.json()
 
-        elif currency == "BTC":
-            data = requests.get(
-                "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=uzs"
-            ).json()
-            result = amount * data["bitcoin"]["uzs"]
+            rate = data["rates"][to_currency]
+            result = round(amount * rate, 2)
 
-        elif currency == "ETH":
-            data = requests.get(
-                "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=uzs"
-            ).json()
-            result = amount * data["ethereum"]["uzs"]
+        except Exception as e:
+            error = "Xatolik yuz berdi. Qiymatlarni tekshiring."
 
-    return render_template("index.html", result=result)
+    return render_template("index.html", result=result, error=error)
 
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)
